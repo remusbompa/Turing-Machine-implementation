@@ -1,0 +1,152 @@
+I) Task1:
+	-Pentru a citi din fisierul "task1.in" si a afisa in fisierul "task1.out", folosesc pointerii de tipul
+	FILE *: fin, respectiv fout. Pentru a ma folosi de informatiile despre masina Turing, din "task1.in" 
+	definesc structurile MT (descrie masina Turing propriu-zisa) si Tranzitie (pentru a citi tranzitiile
+	din MT). Campurile structurilor definite sunt elementele citite din fisierul de intrare despre masina
+	Turing.
+	-pentru a simula cele doua benzi am folosit sirurie tape1,tape2 cu un nr de 10000 de elemente fiecare
+	(numarul maxim de celule de pe fiecare banda).
+	-masina Turing si cele doua benzi se vor initializa in functia:
+        *)void CitireMT(FILE *fin,MT *m,char *tape1,char *tape2)
+        -aloca memorie pentru campurile structurii de tipul MT catre care indica pointerul m de tipul MT*
+        -citeste pe rand toate informatiile din fisierul de intrare fin: referitoare la masina Turing m si
+        la cele doua benzi tape1, tape2:
+        >m->N salveaza in el numarul de stari
+        >m->K se aloca ca un vector de pointeri catre siruri de caractere de maxim 101 caractere, pointerii 
+        acestui vector reprezentand starile (numele starilor are maxim 100 de caractere, plus 0 de la
+        sfarsitul unui sir)
+        >m->M salveaza in el numarul de stari finale
+        >m->F se aloca ca un vector de pointeri catre siruri de caracter, precum m->K, pointerii acestui
+        vector reprezentand starile finale. Cum F e inclusa sau egala cu K, nu mai are rost sa aloc memorie 
+        pentru a salva sirurile de caractere ale starilor finale ci ma voi folosi de memoria in care am 
+        salvat sirurile de caractere ale starilor din K. Pentru aceasta, am utilizat functia:
+            *)char* FindState(FILE *fin,MT *m), care:
+            >citeste din fisierul de intrare fin numele unei stari la adresa pointerului w
+            >compara acest cuvant cu fiecare cuvant din vectorul pointerilor catre numele starilor, m->K, iar
+            daca este identic cu unul dintre aceste nume (if(!strcmp(m->K[i],w))), functia va intoarce un
+            pointer catre acesta
+            >in cazul in care nu este gasit un nume identic, functia intoarce NULL, insa cum in cerinta 
+            problemei se precizeaza ca toate numele de stari citite din fisierul de intrare sunt corecte, 
+            functia nu va intoarce NULL la niciun apel, pe parcursul executiei acestui program
+        Astfel, pointerilor m->F[i] catre numele starii finale le voi atribui FindState(fin,m), adica pointerul
+        catre una din starile deja alocate
+        >m->s0 reprezinta un pointer catre starea initiala si se obtine tot prin apelul functiei FindState(fin,m)
+        >m->P salveaza in el numarul de tranzitii
+        >m->d este alocat ca un vector de pointeri catre structuri de tipul Tranzitie. Fiecare element al vectoru-
+        lui m->d este alocat si va salva informatii despre o anumita tranzitie prin apelarea functiei:
+            *)void CitireTranz(FILE *fin,MT *m,int nr), care:
+            >scrie informatiile despre tranzitia cu numarul nr in elementul de tip Tranzitie* m->d[nr]
+            >m->d[nr]->crt_state reprezinta starea initiala a tranzitiei si va indica catre o stare din K prin
+            apelul functiei FindState(fin,m)
+            >d[nr]->tape1_read_symbol reprezinta caracterul citit de pe prima banda
+            >d[nr]->tape2_read_symbol reprezinta caracterul citit de pe a doua banda
+            >m->d[nr]->next_state reprezinta starea finala a tranzitiei si va indica catre o stare din K prin
+            apelul functiei FindState(fin,m)
+            >m->d[nr]->tape1_write_symbol reprezinta caracterul scris pe prima banda
+            >m->d[nr]->tape1_direction reprezinta directia in care va merge cursorul de pe prima banda dupa ce
+            scrie caracterul pe banda
+            >m->d[nr]->tape2_write_symbol reprezinta caracterul scris pe a doua banda
+            >m->d[nr]->tape2_direction reprezinta directia in care va merge cursorul de pe a doua banda dupa ce
+            scrie caracterul pe banda
+        >se salveaza in tape1 si tape2 benzile 1 si 2
+    -se executa tranzitiile masinii Turing m pentru cuvintele din tape1,tape2 cu ajutorul functiei:
+        *)void RezolvareMT(MT *m,char *tape1,char *tape2,FILE *fout)
+        >initializeaza cele doua benzi prin apelul functiei:
+            *)void InitTape(char *tape,int n), care:
+            >primeste ca parametru n, lungimea cuvantului de pe banda tape
+            >adauga '#' la drapta cuvintelor, pe toata banda tape
+        >foloseste variabilele: c1,c2- pozitia cursorului de pe banda 1 si banda 2, care initial sunt 1
+                                st_in -starea curenta (initiala) ,care initial este m->s0
+        >pentru a afla tranzitia urmatoare a masinii Turing se foloseste functia :
+            *)Tranzitie* AflaTranzitia(MT*m,char *tape1,char *tape2,int c1,int c2,char* st_in), care:
+            ( Tranzitie *t=AflaTranzitia(m,tape1,tape2,c1,c2,st_in) )
+            >cauta in vectorul de pointeri la structuri de tipul Tranzitie (m->d), o tranzitie care incepe din
+            starea initiala st_in si citeste pe cele doua benzi simbolurile (caracterele) tape1[c1], tape2[c2]
+            >in cazul in care nu gaseste nicio tranzitie, functia intoarce NULL
+    -cat timp exista tranzitii (t!=NULL) se efectueaza instructiunile:
+        -se inlocuiesc elementele din benzi de pe pozitiile c1 si c2 cu sibolurile scrise de tranzitie
+            ( t->tape1_write_symbol si t->tape2_write_symbol )
+        -se muta cursoarele c1 si c2 in directia indicata de tranzitie ( t->tape1_direction t->tape2_direction )
+        apeland functia:
+            *)void MutCursor(int *c,char direction), care:
+            >in functie de caracterul direction, modifica valoarea cursorului *c (daca direction e 'L', cursorul 
+            scade cu 1, iar daca  e 'R', acesta creste cu 1) (daca e 'H' ramane acelasi)
+        -se actualizeaza starea curenta st_in la starea urmatoare indicata de tranzitie
+        ( st_in=t->next_state )
+    -daca nu mai exista tranzitii se verifica daca masina Turing a ajuns intr-o stare finala, caz in care se 
+    afiseaza benzile in fout iar in cazul in care nu a ajuns intr-o stare finala se afiseaza mesajul:
+    "The machine has blocked!"
+    -verificarea daca o stare este finala sau nu se face cu functia:
+        *)int StareFinala(MT *m,char *crt_state), care:
+        -cauta in vectorul de pointeri catre starile finale m->F un pointer care sa indice catre acelasi lucru
+        ca pointerul starii curente crt_state, dat ca parametru
+        -daca se gaseste un element identic se intoarce 1 si 0 in caz contrar
+    -afisarea benzii se face cu functia:
+        *)void AfiTape(char *tape,FILE* fout), care
+        -afiseaza banda fara sirul consecutiv de '#' de la inceput si sfarsit (pe care nu ii mai afiseaza
+        datorita functiei void MarginiTape(char *tape,int *ms,int *md), care pune in ms si md inceputul si 
+        sfarsitul cuvantului de pe banda tape)
+    -se elibereaza memoria alocata de MT*m prin functia:
+        *)void ElibMT(MT *m)
+    -in caz de eroare la alocarea memoriei se apeleaza functia:
+        *)void Eroare(), care afiseaza un mesaj de eroare la alocarea memoriei si inchide programul
+
+II) Task2
+    -cum ni se garanteaza ca va fi mereu un caracter dominant rezulta ca problema se reduce la construirea
+    unei masini Turing care sa determine caracterul cu numarul cel mai mare de aparitii.
+    -Masina Turing pe care am construit-o are 18 stari: 
+        s0 sa sb sc sd sab sac sad sbc sbd scd sabc sabd sacd sbcd sback ssuprascriere sfinal,
+    dintre care starile:    sa, sb, sc, sd
+                            sab sac sad sbc sbd scd
+                            sabc sabd sacd sbcd
+    prezinta o anumita simetrie.
+    -pentru a functiona masina Turing are nevoie de inca un simbol diferit de a,b,c,d sau # pe care il aleg 0.
+    -ultimele 2 stari in care masina va ajunge indiferent de cuvantul citit sunt: ssuprascriere si sfinal
+    
+    *)ssuprascriere este o stare care sterge (transforma in #) toate simbolurile din celulele din stanga cursorului
+    >inlocuieste cu # orice caracter si muta cursorul la stanga
+    >in momentul in care se citeste # (se ajunge pe pozitia 0 in banda ), se trece in sfinal iar masina se opreste.
+
+    *)s0
+    -in starea initiala cursorul se duce la dreapta pana ajunge la primul caracter diferit de 0.
+    -in cazul in care acest caracter este #, inseamna ca nu exista un caracter cu un numar de aparitii mai 
+    mare decat al celorlalte, se inlocuieste # cu 0, cursorul se muta la stanga iar masina trece in 
+    starea ssuprascriere. Cum din enuntul problemei se garanteaza ca va exista mereu un caracter dominant, rezulta 
+    ca aceasta tranzitie nu va fi efectuata niciodata si deci nu se va afisa niciodata 0 in fisierul output.
+    -in caz contrar x= a,b,c sau d este primul caracter diferit de 0 citit in s0. Se inlocuieste x cu 0
+    si se merge la dreapta, iar masina intra in starea sx.
+
+    *)sx
+    -cursorul se duce la dreapta pana cand gaseste cu carater diferit de 0 si de x.
+    -daca nu se gaseste niciun astfel de caracter inseamna ca x e caracterul dominant (deoarece toate celelalte 
+    caractere au avut un x corespunzator si au fost transformate in 0 impreuna cu acesta ), este inlocuit # de 
+    la final (la care se ajunge) cu x se merge la stanga, iar masina trece in starea ssuprascriere.
+    -in caz contrar y= a,b,c sau d este primul caracter diferit de 0 si de x citit in sx. Se inlocuieste y cu 0
+    si se merge la dreapta, iar masina intra in starea sxy.
+
+    *)sxy
+    -cursorul se duce la dreapta pana cand gaseste cu carater diferit de 0, x si y.
+    -daca nu se gaseste niciun astfel de caracter inseamna ca x si y au depasit celelalte simboluri in numarul de
+    aparitii si au ramas singure pe banda. In acest caz, # de la final nu se schimba, cursorul se duce la stanga, 
+    iar masina trece in starea sback.
+            *)sback este o stare care aduce cursorul la inceputul benzii astfel:
+            - orice caracter diferit de # citit ramane la fel iar cursorul se muta la stanga
+            - daca se citeste # (se ajunge la inceputul benzii, pe pozitia 0), acesta ramane #, cursorul merge la
+            dreapta (pe pozitia 1) iar masina trece in starea s0
+    -in caz contrar z= a,b,c sau d este primul caracter diferit de 0, x si y citit in sxy. Se inlocuieste z cu 0
+    si se merge la dreapta, iar masina intra in starea sxyz.
+
+    *)sxyz
+    -cursorul se duce la dreapta pana cand gaseste caraterul diferit de 0, x, y si z.
+    -daca nu se gaseste niciun astfel de caracter inseamna ca x, y si z au depasit celalalt simbol in numarul de
+    aparitii si au ramas singure pe banda. In acest caz, # de la final nu se schimba, cursorul se duce la stanga,
+    iar masina trece in starea sback.
+    -in caz contrar t= a,b,c sau d este caracterul diferit de 0, x, y si z citit in sxyz. In acest caz am reusit
+    sa elimin cate o aparitie a fiecarui simbol si vreau sa ma intorc la inceput pentru a continua procedeul.
+    Se inlocuieste t cu 0 si se merge la stanga, iar masina intra in starea sback.
+
+    -cu aceasta masina Turing, atat in situatia in care nu exista caracter dominant (caz in care ajung in cele din
+    urma in s0 cu banda plina de 0-uri) cat si atunci cand exista caracter dominant (caz in care ajung in cele din 
+    urma in sx cu banda plina de 0-uri si eventual x-uri) se va trece in starea ssuprascriere si in final in
+    sfinal, ceea ce inseamna ca masina Turing construita se va termina totdeauna.
+
